@@ -4,11 +4,8 @@ import os
 import hashlib
 import signal
 from telegram.constants import ParseMode
-from telegram.ext import Application
-from datetime import datetime
-
-# === Глобальные флаги ===
-is_shutting_down = False
+from telegram.ext import Application, CommandHandler
+from datetime import datetime, timezone
 
 # === Telegram настройки ===
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -25,6 +22,7 @@ debug_mode = True
 triangle_cache = {}
 triangle_hold_time = 5
 log_file = "triangle_log.csv"
+is_shutting_down = False
 
 exchange = ccxt.bybit({
     "enableRateLimit": True,
@@ -105,7 +103,7 @@ async def send_telegram_message(text):
 
 def log_route(base, mid1, mid2, profit, volume):
     with open(log_file, "a") as f:
-        f.write(f"{datetime.utcnow()},{base}->{mid1}->{mid2}->{base},{profit:.4f},{volume}\n")
+        f.write(f"{datetime.now(timezone.utc)},{base}->{mid1}->{mid2}->{base},{profit:.4f},{volume}\n")
 
 async def fetch_balances():
     try:
@@ -156,7 +154,7 @@ async def check_triangle(base, mid1, mid2, symbols, markets):
 
         route_id = f"{base}->{mid1}->{mid2}->{base}"
         route_hash = hashlib.md5(route_id.encode()).hexdigest()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         prev_time = triangle_cache.get(route_hash)
         execute = prev_time and (now - prev_time).total_seconds() >= triangle_hold_time
         if not execute:
@@ -185,14 +183,29 @@ async def check_triangle(base, mid1, mid2, symbols, markets):
 
         if execute:
             balances = await fetch_balances()
-            if balances.get(base, 0) < target_volume_usdt:
-                print(f"[⛔] Недостаточно {base} для сделки")
+            free_amount = balances.get(base, 0)
+            if free_amount < target_volume_usdt:
+                msg = f"❌ Недостаточно {base} на балансе. Доступно: {free_amount:.2f} {base}, нужно: {target_volume_usdt:.2f} {base}"
+                print(msg)
+                await send_telegram_message(msg)
                 return
             await simulate_trading_execution(route_id, profit_percent)
 
     except Exception as e:
         if debug_mode:
             print(f"[Ошибка маршрута {base}->{mid1}->{mid2}]: {e}")
+
+# === /balance команда
+async def balance_command(update, context):
+    balances = await fetch_balances()
+    if not balances:
+        await update.message.reply_text("⚠️ Не удалось получить балансы.")
+        return
+    msg = "♻️ <b>Балансы на Bybit:</b>\n"
+    for coin, amount in balances.items():
+        if amount > 0:
+            msg += f"{coin}: {amount:.6f}\n"
+    await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
 
 async def main():
     try:
@@ -205,6 +218,7 @@ async def main():
         triangles = await find_triangles(symbols, start_coins)
         print(f"🔁 Найдено треугольников: {len(triangles)}")
 
+        telegram_app.add_handler(CommandHandler("balance", balance_command))
         await telegram_app.initialize()
         await telegram_app.start()
         await send_telegram_message("🚀 Бот запущен!")
