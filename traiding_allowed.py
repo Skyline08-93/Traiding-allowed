@@ -374,7 +374,7 @@ async def main():
                 print(f"{i+1}. {t}")
         
         # Тест доступности пар
-        test_pair = "BTCUSDT"
+        test_pair = "BTC/USDT"
         if test_pair in symbols:
             ticker = await exchange.fetch_ticker(test_pair)
             print(f"Тест пары {test_pair}: last={ticker['last']}, bid={ticker['bid']}, ask={ticker['ask']}")
