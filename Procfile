@@ -1,0 +1,1 @@
+trading_allowed: python traiding_allowed.py
