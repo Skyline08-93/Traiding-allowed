@@ -285,7 +285,7 @@ async def check_triangle(base, mid1, mid2, symbols, markets):
         log_route(base, mid1, mid2, profit_percent, min_liquidity)
 
         if execute:
-    if real_trading_enabled:
+        if real_trading_enabled:
         amount1 = target_volume_usdt
         amount2 = amount1 / price1 if side1 == 'buy' else amount1 * price1
         amount3 = amount2 / price2 if side2 == 'buy' else amount2 * price2
