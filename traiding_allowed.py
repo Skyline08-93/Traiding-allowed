@@ -285,19 +285,19 @@ async def check_triangle(base, mid1, mid2, symbols, markets):
         log_route(base, mid1, mid2, profit_percent, min_liquidity)
 
         if execute:
-        if real_trading_enabled:
-        amount1 = target_volume_usdt
-        amount2 = amount1 / price1 if side1 == 'buy' else amount1 * price1
-        amount3 = amount2 / price2 if side2 == 'buy' else amount2 * price2
+            if real_trading_enabled:
+                amount1 = target_volume_usdt
+                amount2 = amount1 / price1 if side1 == 'buy' else amount1 * price1
+                amount3 = amount2 / price2 if side2 == 'buy' else amount2 * price2
 
-        trade_steps = [
-            (s1, side1, price1, amount1),
-            (s2, side2, price2, amount2),
-            (s3, side3, price3, amount3)
-        ]
-        await execute_real_trade(route_id, trade_steps, asset, markets)
-    else:
-        await simulate_trading_execution(route_id, profit_percent)
+                trade_steps = [
+                    (s1, side1, price1, amount1),
+                    (s2, side2, price2, amount2),
+                    (s3, side3, price3, amount3)
+                ]
+                await execute_real_trade(route_id, trade_steps, asset, markets)
+            else:
+                await simulate_trading_execution(route_id, profit_percent)
 
     except Exception as e:
         if debug_mode:
