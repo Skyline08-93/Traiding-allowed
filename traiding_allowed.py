@@ -333,7 +333,7 @@ async def check_triangle(base, mid1, mid2, symbols, markets):
 
 async def main():
     symbols, markets = await load_symbols()
-    start_coins = list(set([s.split('/')[1] for s in symbols if '/' in s]))
+    start_coins = ['USDT']
     triangles = await find_triangles(symbols, start_coins)
     print(f"🔁 Найдено треугольников: {len(triangles)}")
 
