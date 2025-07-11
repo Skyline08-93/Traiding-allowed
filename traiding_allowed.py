@@ -231,7 +231,7 @@ async def execute_real_trade(route_id, steps, base_coin, markets):
         profit_usdt = current_amount - target_volume_usdt
         profit_percent = (profit_usdt / target_volume_usdt) * 100
 
-        report = f"""✅ <b>РЕАЛЬНАЯ СДЕЛКА</b>
+report = f"""✅ <b>РЕАЛЬНАЯ СДЕЛКА</b>
         Маршрут: {route_id}
         Начальный объем: ${target_volume_usdt:.2f}
         Финальный объем: ${current_amount:.2f}
