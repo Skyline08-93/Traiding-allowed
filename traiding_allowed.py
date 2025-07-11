@@ -356,7 +356,7 @@ async def check_triangle(base, mid1, mid2, symbols, markets):
                     (s3, side3, price3, amount3)
                 ]
                 await execute_real_trade(route_id, trade_steps, asset, markets)
-            else:
+        else:
                 await simulate_trading_execution(route_id, profit_percent)
 
     except Exception as e:
