@@ -343,7 +343,7 @@ async def check_triangle(base, mid1, mid2, symbols, markets):
         log_route(base, mid1, mid2, profit_percent, min_liquidity)
 
         if execute:
-        print(f"[ТРЕУГОЛЬНИК] {route_id}: ПРОВЕРЕН — ГОТОВ К СДЕЛКЕ")
+            print(f"[ТРЕУГОЛЬНИК] {route_id}: ПРОВЕРЕН — ГОТОВ К СДЕЛКЕ")
         await send_telegram_message(f"🔍 Треугольник найден и готов к сделке:
 {route_id}")
             if real_trading_enabled:
