@@ -151,8 +151,7 @@ async def execute_real_trade(route_id, steps, base_coin, markets):
         print(f"[ТОРГОВЛЯ] Маршрут: {route_id}")
 
         balance = await exchange.fetch_balance()
-        await send_telegram_message(f"📊 Debug баланс (base_coin={base_coin}):
-{balance}")
+        await send_telegram_message(f"📊 Debug баланс (base_coin={base_coin}):\\n{balance}")
         asset_info = balance.get(base_coin)
         if not asset_info or "free" not in asset_info or asset_info["free"] is None:
             await send_telegram_message(f"❌ Не удалось получить баланс {base_coin} для торговли.")
