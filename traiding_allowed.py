@@ -344,8 +344,7 @@ async def check_triangle(base, mid1, mid2, symbols, markets):
 
         if execute:
             print(f"[ТРЕУГОЛЬНИК] {route_id}: ПРОВЕРЕН — ГОТОВ К СДЕЛКЕ")
-        await send_telegram_message(f"🔍 Треугольник найден и готов к сделке:
-{route_id}")
+        await send_telegram_message(f"🔍 Треугольник найден и готов к сделке:\n{route_id}")
             if real_trading_enabled:
                 amount1 = target_volume_usdt
                 amount2 = amount1 / price1 if side1 == 'buy' else amount1 * price1
