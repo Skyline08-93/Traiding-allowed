@@ -113,7 +113,19 @@ def log_route(base, mid1, mid2, profit, volume):
 async def fetch_balances():
     try:
         balances = await exchange.fetch_balance()
-        return balances["total"]
+        result = {}
+        for coin, entry in balances.get("total", {}).items():
+            if isinstance(entry, (int, float)) and entry > 0:
+                result[coin] = entry
+            elif isinstance(entry, dict):
+                # Обрабатываем {'free': None, 'total': 100.0}
+                free = entry.get("free")
+                total = entry.get("total", 0)
+                if (free is not None and free > 0):
+                    result[coin] = free
+                elif total > 0:
+                    result[coin] = total
+        return result
     except Exception as e:
         if debug_mode:
             print(f"[Ошибка баланса]: {e}")
