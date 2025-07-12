@@ -159,8 +159,8 @@ async def execute_real_trade(route_id, steps, base_coin, markets):
             return False
         free_balance = asset_info.get("free")
         if free_balance is None:
-        print("[⚠️] Баланс 'free' отсутствует, используем 'total'")
-        free_balance = asset_info.get("total", 0)
+            print("[⚠️] Баланс 'free' отсутствует, используем 'total'")
+            free_balance = asset_info.get("total", 0)
         print(f"[ТОРГОВЛЯ] Баланс {base_coin}: {free_balance}")
         print(f"[ТОРГОВЛЯ] Баланс {base_coin}: {free_balance}")
 
