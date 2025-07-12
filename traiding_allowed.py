@@ -163,21 +163,19 @@ async def execute_real_trade(route_id, steps, base_coin, markets):
         print(f"[ТОРГОВЛЯ] Маршрут: {route_id}")
 
         balance = await exchange.fetch_balance()
-        await send_telegram_message(f"📊 Debug баланс (base_coin={base_coin}):\\n{balance}")
-        asset_info = balance.get(base_coin)
-        if not asset_info or "free" not in asset_info or asset_info["free"] is None:
-            await send_telegram_message(f"❌ Не удалось получить баланс {base_coin} для торговли.")
-            print(f"[ОШИБКА] Баланс {base_coin} отсутствует или пустой: {asset_info}")
-            return False
+        asset_info = balance.get(base_coin, {})
+
+        # Поддержка Bybit Unified: fallback на total
         free_balance = asset_info.get("free")
         if free_balance is None:
             print("[⚠️] Баланс 'free' отсутствует, используем 'total'")
+            await send_telegram_message("⚠️ Использую total вместо free — вероятно, Unified аккаунт Bybit")
             free_balance = asset_info.get("total", 0)
-        print(f"[ТОРГОВЛЯ] Баланс {base_coin}: {free_balance}")
-        print(f"[ТОРГОВЛЯ] Баланс {base_coin}: {free_balance}")
+
+        print(f"[ТОРГОВЛЯ] Баланс {base_coin}: {free_balance:.2f}")
 
         if free_balance < target_volume_usdt:
-            msg = f"❌ Недостаточно {base_coin} для сделки. Доступно: {free_balance:.2f}, нужно: {target_volume_usdt:.2f}"
+            msg = f"❌ Недостаточно {base_coin}. Доступно: {free_balance:.2f}, нужно: {target_volume_usdt:.2f}"
             await send_telegram_message(msg)
             print("[ТОРГОВЛЯ ОТКЛОНЕНА] Недостаточно средств")
             return False
@@ -192,11 +190,11 @@ async def execute_real_trade(route_id, steps, base_coin, markets):
                 min_price = market.get("limits", {}).get("price", {}).get("min", 0)
                 min_amount = market.get("limits", {}).get("amount", {}).get("min", 0)
 
-                print(f"[ШАГ {i}] Символ: {symbol}, сторона: {side}, цена: {price}, объём: {amount}")
-                await send_telegram_message(f"📦 Шаг {i} | {symbol} {side.upper()} @ {price} | Объем: {amount:.6f}")
+                print(f"[ШАГ {i}] {symbol} {side} @ {price} | amount: {amount}")
+                await send_telegram_message(f"📦 Шаг {i}: {symbol} {side.upper()} @ {price:.6f} | {amount:.6f}")
 
                 if not price or price < min_price:
-                    msg = f"❌ Шаг {i}: цена {price} ниже минимальной {min_price} для {symbol}"
+                    msg = f"❌ Цена {price} ниже минимальной {min_price} для {symbol}"
                     await send_telegram_message(msg)
                     print(f"[ОШИБКА] {msg}")
                     return False
@@ -215,36 +213,28 @@ async def execute_real_trade(route_id, steps, base_coin, markets):
                     price=price,
                     params={"timeInForce": "PostOnly"},
                 )
-
                 executed_orders.append(order)
                 await asyncio.sleep(1.5)
 
-                order_status = await exchange.fetch_order(order["id"], symbol)
-                filled = float(order_status.get("filled", 0))
-                order_price = float(order_status.get("average") or price)
+                status = await exchange.fetch_order(order["id"], symbol)
+                filled = float(status.get("filled", 0))
+                avg_price = float(status.get("average") or price)
 
                 if filled == 0:
                     await exchange.cancel_order(order["id"], symbol)
-                    await send_telegram_message(
-                        f"❌ Шаг {i}: ордер не исполнен — {symbol} {side} {adjusted_amount}@{price}"
-                    )
-                    print(f"[НЕИСПОЛНЕНО] {symbol} шаг {i}")
+                    await send_telegram_message(f"❌ Шаг {i}: Ордер не исполнен — {symbol} {side}")
                     return False
 
                 if side == "buy":
-                    current_amount = filled * order_price * (1 - commission_rate)
+                    current_amount = filled * avg_price * (1 - commission_rate)
                 else:
                     current_amount = filled * (1 - commission_rate)
 
-                await send_telegram_message(
-                    f"✅ Шаг {i}: {symbol} {side.upper()} исполнен {filled:.6f} по {order_price:.6f}"
-                )
-                print(f"[ИСПОЛНЕНО] {symbol}: {filled} @ {order_price}")
+                await send_telegram_message(f"✅ Шаг {i}: {filled:.6f} @ {avg_price:.6f}")
+                print(f"[ИСПОЛНЕНО] {symbol} {side}: {filled} @ {avg_price}")
 
             except Exception as e:
-                await send_telegram_message(
-                    f"🔥 Ошибка на шаге {i} ({symbol}): {str(e)}"
-                )
+                await send_telegram_message(f"🔥 Ошибка на шаге {i}: {e}")
                 print(f"[ОШИБКА] шаг {i}: {e}")
                 for o in executed_orders:
                     try:
@@ -256,18 +246,18 @@ async def execute_real_trade(route_id, steps, base_coin, markets):
         profit_usdt = current_amount - target_volume_usdt
         profit_percent = (profit_usdt / target_volume_usdt) * 100
 
-        report = f"""✅ <b>РЕАЛЬНАЯ СДЕЛКА</b>
+        summary = f"""✅ <b>РЕАЛЬНАЯ СДЕЛКА</b>
 Маршрут: {route_id}
 Начальный объем: ${target_volume_usdt:.2f}
 Финальный объем: ${current_amount:.2f}
 💵 Прибыль: ${profit_usdt:.2f} ({profit_percent:.2f}%)"""
 
-        await send_telegram_message(report)
-        print(report)
+        await send_telegram_message(summary)
+        print(summary)
         return True
 
     except Exception as e:
-        await send_telegram_message(f"🔥 Критическая ошибка торговли: {str(e)}")
+        await send_telegram_message(f"🔥 Критическая ошибка торговли: {e}")
         print(f"[КРИТИЧЕСКАЯ ОШИБКА]: {e}")
         return False
 
