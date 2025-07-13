@@ -227,7 +227,7 @@ async def execute_real_trade(route_id, steps, base_coin, markets):
                     side=side,
                     amount=adjusted_amount,
                     price=price,
-                    params={"timeInForce": "PostOnly"},
+                    params={},
                 )
                 executed_orders.append(order)
                 await asyncio.sleep(3.0)
